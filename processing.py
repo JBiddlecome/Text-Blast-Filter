@@ -30,15 +30,28 @@ def _promote_header_and_drop_first_three(raw_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def _split_name_to_first_last(full):
+    """Split names. Prefer 'Last, First' if a comma is present; else fallback to whitespace split.
+    Handles extra commas/suffixes safely and never over-unpacks.
+    """
     if pd.isna(full):
         return pd.Series({"First Name": np.nan, "Last Name": np.nan})
+
     s = str(full).strip()
     if not s:
         return pd.Series({"First Name": "", "Last Name": ""})
-    if "," in s:  # "Last, First ..."
-        last, rest = [p.strip() for p in s.split(",", 1)] + [""] if "," in s else ["", ""]
-        first = (rest.split()[0] if rest else "")
+
+    # Preferred form: "Last, First Middle ..." (only split once)
+    if "," in s:
+        parts = [p.strip() for p in s.split(",", 1)]
+        if len(parts) == 2:
+            last, rest = parts
+        else:
+            # Rare edge cases: treat the whole thing as "last", with empty "rest"
+            last, rest = parts[0], ""
+        first = rest.split()[0] if rest else ""
         return pd.Series({"First Name": first, "Last Name": last})
+
+    # Fallback form: "First Middle Last"
     parts = s.split()
     if len(parts) == 1:
         return pd.Series({"First Name": parts[0], "Last Name": ""})
