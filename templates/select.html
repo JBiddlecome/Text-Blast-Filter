@@ -1,0 +1,72 @@
+<!-- templates/select.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Select Shift Titles</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    .card { max-width: 900px; border: 1px solid #ddd; border-radius: 12px; padding: 1.25rem; }
+    label { display: block; font-weight: 600; margin-top: 1rem; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem 1rem; margin-top: 0.5rem; }
+    .pill { border: 1px solid #ccc; border-radius: 999px; padding: 0.4rem 0.6rem; display: inline-flex; align-items: center; gap: 0.5rem; }
+    button { margin-top: 1.25rem; padding: 0.75rem 1rem; border: 0; border-radius: 8px; background: #2d6cdf; color: #fff; font-weight: 700; cursor: pointer; }
+    .hint { color: #555; font-size: 0.9rem; margin-top: 0.25rem; }
+    .flash { background: #ffe9e9; border: 1px solid #ffb8b8; color: #a20000; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; }
+    .row { display: flex; gap: 1rem; }
+    .row > div { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Select Shift Titles & Filters</h2>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('process') }}" method="post">
+      <input type="hidden" name="temp_id" value="{{ temp_id }}">
+      <input type="hidden" name="ext" value="{{ ext }}">
+
+      <label>Shift Position Title (choose at least one)</label>
+      {% if shift_titles and shift_titles|length > 0 %}
+        <div class="grid">
+        {% for t in shift_titles %}
+          <label class="pill">
+            <input type="checkbox" name="shift_titles" value="{{ t }}"> {{ t }}
+          </label>
+        {% endfor %}
+        </div>
+      {% else %}
+        <p class="hint">No <b>Shift Position Title</b> column was found. You can still apply other filters below.</p>
+      {% endif %}
+
+      <div class="row" style="margin-top: 1rem;">
+        <div>
+          <label for="max_miles">Max miles</label>
+          <input id="max_miles" type="number" step="0.1" name="max_miles" value="50" />
+          <div class="hint">Keep rows where “Miles From Location” ≤ this number.</div>
+        </div>
+      </div>
+
+      <label for="statuses">Employee statuses to include (comma-separated)</label>
+      <input id="statuses" type="text" name="statuses" placeholder="e.g., Active, Available" />
+      <div class="hint">Leave blank to include all statuses. Check the box below to also include Resigned.</div>
+
+      <div style="margin-top: 0.75rem;">
+        <input id="include_resigned" type="checkbox" name="include_resigned" />
+        <label for="include_resigned" style="display:inline; font-weight:400;">Include Resigned</label>
+      </div>
+
+      <button type="submit">Process & Download CSV</button>
+    </form>
+  </div>
+</body>
+</html>
