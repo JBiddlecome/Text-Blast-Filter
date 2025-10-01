@@ -1,0 +1,63 @@
+<!-- templates/upload.html -->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Employee Filter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    .card { max-width: 720px; border: 1px solid #ddd; border-radius: 12px; padding: 1.25rem; }
+    label { display: block; font-weight: 600; margin-top: 1rem; }
+    input[type="text"], input[type="number"] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; }
+    input[type="file"] { margin-top: 0.5rem; }
+    .hint { color: #555; font-size: 0.9rem; margin-top: 0.25rem; }
+    .row { display: flex; gap: 1rem; }
+    .row > div { flex: 1; }
+    button { margin-top: 1.25rem; padding: 0.75rem 1rem; border: 0; border-radius: 8px; background: #2d6cdf; color: #fff; font-weight: 700; cursor: pointer; }
+    .flash { background: #ffe9e9; border: 1px solid #ffb8b8; color: #a20000; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Filter Employees & Download CSV</h2>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('process') }}" method="post" enctype="multipart/form-data">
+      <label>Upload spreadsheet (.xlsx or .csv)</label>
+      <input type="file" name="file" accept=".xlsx,.csv" required />
+
+      <div class="row">
+        <div>
+          <label for="max_miles">Max miles</label>
+          <input id="max_miles" type="number" step="0.1" name="max_miles" value="50" />
+          <div class="hint">Keep only rows where “Miles From Location” ≤ this number.</div>
+        </div>
+      </div>
+
+      <label for="statuses">Employee statuses to include (comma-separated)</label>
+      <input id="statuses" type="text" name="statuses" placeholder="e.g., Active, Available" />
+      <div class="hint">Leave blank to include all statuses. Use the checkbox below to include Resigned as well.</div>
+
+      <div style="margin-top: 0.75rem;">
+        <input id="include_resigned" type="checkbox" name="include_resigned" />
+        <label for="include_resigned" style="display:inline; font-weight:400;">Include Resigned</label>
+      </div>
+
+      <button type="submit">Process Spreadsheet</button>
+    </form>
+
+    <p class="hint" style="margin-top:1rem;">
+      What the app does:
+      Removes first 3 rows → cleans phone numbers (digits only) → drops missing/zero/starting-with-1 phones → removes duplicate names → filters by miles → filters by status → splits names into First/Last → downloads CSV.
+    </p>
+  </div>
+</body>
+</html>
