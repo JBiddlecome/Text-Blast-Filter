@@ -2,6 +2,7 @@
 import os
 import io
 import uuid
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 import pandas as pd
@@ -130,6 +131,95 @@ def process():
         as_attachment=True,
         download_name="employees-cleaned.csv"
     )
+
+# --- Recruiting Employee Export List (new feature) ---------------------------
+
+def _rx_digits_only(series: pd.Series) -> pd.Series:
+    """Keep digits only in a phone column."""
+    return series.fillna("").astype(str).apply(lambda x: re.sub(r"\D", "", x))
+
+def _normalize_list(raw: str):
+    """Split by comma/newline/semicolon, lowercase, trim; empty -> []"""
+    if not raw:
+        return []
+    parts = re.split(r"[,\n;]+", raw)
+    return [p.strip().lower() for p in parts if p.strip()]
+
+def _contains_any(hay: str, needles):
+    """Case-insensitive substring match: True if any needle in hay."""
+    hay = (hay or "").lower()
+    return any(n in hay for n in needles) if needles else True
+
+@app.route("/recruiting-export", methods=["GET", "POST"])
+def recruiting_export():
+    if request.method == "GET":
+        return render_template("recruiting_export.html")
+
+    # POST: handle upload + filters
+    f = request.files.get("csv_file")
+    if not f or f.filename == "":
+        flash("Please choose a CSV/XLSX file to upload.")
+        return redirect(url_for("recruiting_export"))
+
+    filename = secure_filename(f.filename)
+    ext = Path(filename).suffix.lower()
+
+    # Read uploaded file to DataFrame
+    try:
+        if ext == ".csv":
+            df = pd.read_csv(f)
+        else:
+            # fall back to excel
+            f.stream.seek(0)
+            df = pd.read_excel(f)
+    except Exception as e:
+        flash(f"Could not read file: {e}")
+        return redirect(url_for("recruiting_export"))
+
+    # Required columns
+    required = ["Status", "County", "Positions", "Mobile"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        flash(f"Missing required column(s): {', '.join(missing)}")
+        return redirect(url_for("recruiting_export"))
+
+    # Inputs
+    status_needles   = set(_normalize_list(request.form.get("status_list", "")))    # exact match
+    county_needles   = set(_normalize_list(request.form.get("county_list", "")))    # substring
+    positions_needles = _normalize_list(request.form.get("positions_text", ""))     # substring
+
+    # Clean Mobile -> digits only
+    df["Mobile"] = _rx_digits_only(df["Mobile"])
+
+    # Remove rows with Mobile empty OR starting with '1'
+    df = df[df["Mobile"].str.len() > 0]
+    df = df[~df["Mobile"].str.startswith("1")]
+
+    # Apply filters
+    if status_needles:
+        df = df[df["Status"].fillna("").str.lower().isin(status_needles)]
+
+    if county_needles:
+        df = df[df["County"].fillna("").str.lower().apply(
+            lambda v: any(n in v for n in county_needles)
+        )]
+
+    if positions_needles:
+        df = df[df["Positions"].fillna("").str.lower().apply(
+            lambda v: _contains_any(v, positions_needles)
+        )]
+
+    # Output CSV
+    output = io.StringIO()
+    df.to_csv(output, index=False)
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="recruiting-employee-export.csv"
+    )
+
 
 # (Nice-to-have) Healthcheck for Render
 @app.route("/healthz")
