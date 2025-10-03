@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Recruiting Employee Export List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+    .card { max-width: 880px; padding: 1.25rem; border: 1px solid #e5e7eb; border-radius: 12px; }
+    label { display:block; font-weight:600; margin-top:1rem; }
+    input[type="text"], textarea { width:100%; padding:.6rem; border:1px solid #d1d5db; border-radius:8px; }
+    input[type="file"] { margin-top:.25rem; }
+    button { margin-top:1.25rem; padding:.75rem 1rem; border:0; border-radius:10px; background:#111827; color:#fff; font-weight:600; cursor:pointer; }
+    .hint { color:#6b7280; font-size:.9rem; }
+    .flash { background:#fff7ed; border:1px solid #fdba74; color:#9a3412; padding:.75rem; border-radius:8px; margin-bottom:1rem;}
+    .nav { margin-bottom:1rem; }
+    .nav a { margin-right: 1rem; color:#2563eb; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <a href="/">← Home</a>
+  </div>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="flash">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="card">
+    <h1>Recruiting Employee Export List</h1>
+    <p class="hint">Upload an employee list, filter by Status / County / Positions, clean Mobile numbers, and download CSV.</p>
+
+    <form method="POST" action="{{ url_for('recruiting_export') }}" enctype="multipart/form-data">
+      <label>Upload CSV/XLSX</label>
+      <input type="file" name="csv_file" accept=".csv,.xlsx,.xls" required />
+
+      <label>Status (comma or newline separated)</label>
+      <textarea name="status_list" rows="2" placeholder="e.g. Active, Candidate"></textarea>
+      <p class="hint">Exact matches against the Status column. Leave blank to include all.</p>
+
+      <label>County (comma or newline separated)</label>
+      <textarea name="county_list" rows="2" placeholder="e.g. Los Angeles, Orange"></textarea>
+      <p class="hint">Substring match (case-insensitive).</p>
+
+      <label>Positions contains (phrases; comma/newline separated)</label>
+      <textarea name="positions_text" rows="2" placeholder="e.g. Cook 1, Barista"></textarea>
+      <p class="hint">Substring match within the Positions cell (which may include multiple roles).</p>
+
+      <button type="submit">Filter &amp; Download CSV</button>
+    </form>
+  </div>
+</body>
+</html>
