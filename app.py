@@ -177,7 +177,7 @@ def recruiting_export():
         return redirect(url_for("recruiting_export"))
 
     # Required columns
-    required = ["Status", "County", "Positions", "Mobile"]
+    required = ["Status", "County", "Positions", "Mobile", "Name"]
     missing = [c for c in required if c not in df.columns]
     if missing:
         flash(f"Missing required column(s): {', '.join(missing)}")
@@ -208,6 +208,10 @@ def recruiting_export():
         df = df[df["Positions"].fillna("").str.lower().apply(
             lambda v: _contains_any(v, positions_needles)
         )]
+        
+    # Add First Name column from Name (first token only)
+    if "Name" in df.columns:
+        df["First Name"] = df["Name"].fillna("").astype(str).str.split().str[0]
 
     # Output CSV
     output = io.StringIO()
